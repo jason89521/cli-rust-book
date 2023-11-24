@@ -1,8 +1,9 @@
 [workspace]
 
-members = ["echor"]
+members = ["echor", "catr"]
 
 [workspace.dependencies]
 clap = "2.33"
 assert_cmd = "2"
 predicates = "2"
+rand = "0.8"
