@@ -8,7 +8,7 @@ fn dies_no_args() -> TestResult {
     let mut cmd = Command::cargo_bin("echor")?;
     cmd.assert()
         .failure()
-        .stderr(predicates::str::contains("USAGE"));
+        .stderr(predicates::str::contains("Usage"));
     Ok(())
 }
 

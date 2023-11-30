@@ -4,7 +4,7 @@ use std::{
     io::{self, BufRead, BufReader},
 };
 
-use clap::{App, Arg};
+use clap::{Arg, ArgAction, Command};
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
@@ -48,37 +48,42 @@ pub fn run(config: Config) -> MyResult<()> {
 }
 
 pub fn get_args() -> MyResult<Config> {
-    let matches = App::new("catr")
+    let matches = Command::new("catr")
         .version("0.1.0")
         .author("Yu Xuan")
         .about("Rust cat")
         .arg(
-            Arg::with_name("files")
+            Arg::new("files")
                 .value_name("FILES")
                 .help("Input files")
-                .multiple(true)
-                .default_value("-"),
+                .num_args(1..),
         )
         .arg(
-            Arg::with_name("number_lines")
-                .short("n")
+            Arg::new("number_lines")
+                .short('n')
                 .long("number")
                 .help("Number lines")
-                .takes_value(false)
-                .conflicts_with("number_nonblank"),
+                .action(ArgAction::SetTrue)
+                .conflicts_with("number_nonblank_lines"),
         )
         .arg(
-            Arg::with_name("number_nonblank_lines")
-                .short("b")
+            Arg::new("number_nonblank_lines")
+                .short('b')
                 .long("number-nonblank")
                 .help("Number non-blank lines")
-                .takes_value(false),
+                .action(ArgAction::SetTrue),
         )
         .get_matches();
 
-    let files = matches.values_of_lossy("files").unwrap();
-    let number_lines = matches.is_present("number_lines");
-    let number_nonblank_lines = matches.is_present("number_nonblank_lines");
+    let files = matches
+        .get_many::<String>("files")
+        .unwrap_or_default()
+        .map(|v| v.into())
+        .collect::<Vec<String>>();
+    let number_lines = *matches.get_one::<bool>("number_lines").unwrap_or(&false);
+    let number_nonblank_lines = *matches
+        .get_one::<bool>("number_nonblank_lines")
+        .unwrap_or(&false);
 
     Ok(Config {
         files,
