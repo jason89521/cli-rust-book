@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["echor", "catr", "headr"]
+members = ["echor", "catr", "headr", "shared"]
 
 [workspace.dependencies]
 clap = "4.4.10"

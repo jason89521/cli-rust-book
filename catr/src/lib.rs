@@ -1,12 +1,8 @@
-use std::{
-    error::Error,
-    fs::File,
-    io::{self, BufRead, BufReader},
-};
+use std::io::BufRead;
 
 use clap::{Arg, ArgAction, Command};
 
-type MyResult<T> = Result<T, Box<dyn Error>>;
+use shared::{open, MyResult};
 
 #[derive(Debug)]
 pub struct Config {
@@ -90,11 +86,4 @@ pub fn get_args() -> MyResult<Config> {
         number_lines,
         number_nonblank_lines,
     })
-}
-
-fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
-    match filename {
-        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
-        f => Ok(Box::new(BufReader::new(File::open(f)?))),
-    }
 }

@@ -100,6 +100,7 @@ dependencies = [
  "clap",
  "predicates",
  "rand",
+ "shared",
 ]
 
 [[package]]
@@ -196,6 +197,7 @@ dependencies = [
  "clap",
  "predicates",
  "rand",
+ "shared",
 ]
 
 [[package]]
@@ -335,6 +337,10 @@ name = "serde"
 version = "1.0.164"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e8c8cf938e98f769bc164923b06dce91cea1751522f46f8466461af04c9027d"
+
+[[package]]
+name = "shared"
+version = "0.1.0"
 
 [[package]]
 name = "strsim"
