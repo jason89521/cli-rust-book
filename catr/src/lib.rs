@@ -1,8 +1,9 @@
-use std::io::BufRead;
+use clap::{App, Arg};
+use std::error::Error;
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 
-use clap::{Arg, ArgAction, Command};
-
-use shared::{open, MyResult};
+type MyResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
 pub struct Config {
@@ -11,79 +12,75 @@ pub struct Config {
     number_nonblank_lines: bool,
 }
 
+// --------------------------------------------------
+pub fn get_args() -> MyResult<Config> {
+    let matches = App::new("catr")
+        .version("0.1.0")
+        .author("Ken Youens-Clark <kyclark@gmail.com>")
+        .about("Rust cat")
+        .arg(
+            Arg::with_name("files")
+                .value_name("FILE")
+                .help("Input file(s)")
+                .multiple(true)
+                .default_value("-"),
+        )
+        .arg(
+            Arg::with_name("number")
+                .short("n")
+                .long("number")
+                .help("Number lines")
+                .takes_value(false)
+                .conflicts_with("number_nonblank"),
+        )
+        .arg(
+            Arg::with_name("number_nonblank")
+                .short("b")
+                .long("number-nonblank")
+                .help("Number non-blank lines")
+                .takes_value(false),
+        )
+        .get_matches();
+
+    Ok(Config {
+        files: matches.values_of_lossy("files").unwrap(),
+        number_lines: matches.is_present("number"),
+        number_nonblank_lines: matches.is_present("number_nonblank"),
+    })
+}
+
+// --------------------------------------------------
 pub fn run(config: Config) -> MyResult<()> {
-    for filename in &config.files {
+    for filename in config.files {
         match open(&filename) {
-            Err(err) => eprintln!("{}: {}", filename, err),
-            Ok(buf) => {
-                let mut line_num = 0usize;
-                let mut lines: Vec<String> = vec![];
-                for line_result in buf.lines() {
+            Err(e) => eprintln!("{}: {}", filename, e),
+            Ok(file) => {
+                let mut last_num = 0;
+                for (line_num, line_result) in file.lines().enumerate() {
                     let line = line_result?;
-                    line_num += 1;
                     if config.number_lines {
-                        lines.push(format!("{:>6}\t{}", line_num, line));
+                        println!("{:6}\t{}", line_num + 1, line);
                     } else if config.number_nonblank_lines {
-                        if line.is_empty() {
-                            line_num -= 1;
-                            lines.push("".into());
+                        if !line.is_empty() {
+                            last_num += 1;
+                            println!("{:6}\t{}", last_num, line);
                         } else {
-                            lines.push(format!("{:>6}\t{}", line_num, line))
+                            println!();
                         }
                     } else {
-                        lines.push(format!("{}", line))
+                        println!("{}", line);
                     }
                 }
-
-                let result = lines.join("\n");
-                print!("{}", result)
             }
         }
     }
     Ok(())
 }
 
-pub fn get_args() -> MyResult<Config> {
-    let matches = Command::new("catr")
-        .version("0.1.0")
-        .author("Yu Xuan")
-        .about("Rust cat")
-        .arg(
-            Arg::new("files")
-                .value_name("FILES")
-                .help("Input files")
-                .num_args(1..),
-        )
-        .arg(
-            Arg::new("number_lines")
-                .short('n')
-                .long("number")
-                .help("Number lines")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("number_nonblank_lines"),
-        )
-        .arg(
-            Arg::new("number_nonblank_lines")
-                .short('b')
-                .long("number-nonblank")
-                .help("Number non-blank lines")
-                .action(ArgAction::SetTrue),
-        )
-        .get_matches();
-
-    let files = matches
-        .get_many::<String>("files")
-        .unwrap_or_default()
-        .map(|v| v.into())
-        .collect::<Vec<String>>();
-    let number_lines = *matches.get_one::<bool>("number_lines").unwrap_or(&false);
-    let number_nonblank_lines = *matches
-        .get_one::<bool>("number_nonblank_lines")
-        .unwrap_or(&false);
-
-    Ok(Config {
-        files,
-        number_lines,
-        number_nonblank_lines,
-    })
+// --------------------------------------------------
+fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
 }
